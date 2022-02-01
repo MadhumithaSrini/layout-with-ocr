@@ -14,10 +14,12 @@ import argparse
 from detectron2.engine import DefaultTrainer, default_argument_parser, default_setup, hooks, launch
 
 # Import some common libraries
+
 import numpy as np
 import os, json, cv2, random
 
 # Import some common detectron2 utilities
+
 from detectron2 import model_zoo
 from detectron2.engine import DefaultPredictor
 from detectron2.config import get_cfg
@@ -55,6 +57,7 @@ def infer_layout():
   print(config_name.split('_')[0] == 'Sanskrit')
 
   # Capture model weights
+
   if config_name.split('_')[0] == 'Sanskrit':
       core_config = config_name.replace('Sanskrit_', '')
       config_file = config_filePath + '/' + custom_yml_loaded['MODEL_CATALOG'][core_config]
@@ -74,6 +77,7 @@ def infer_layout():
   print("model weights fetched :",model_weights)
 
   # Choosing the image for the inference
+
   input_image_path = 'test_img/'
   input_choice = input("Choose a random image (yes/no) : ")
   isRandom = True
@@ -90,10 +94,9 @@ def infer_layout():
   print(" ")
 
   # Setting the confidence threshold
+
   confidence_threshold = float(input("Set the confidence threshold, choose from 0 to 1 (eg: 0.7) : "))
   print(" ")
-
-  # Getting the output folder
 
   # Set custom configurations
 
@@ -132,31 +135,29 @@ def infer_layout():
   img_name = 'image_with_predictions.jpg'
   im.save(f"{img_name}")
 
-  # Save individual predictions into respective class-wise folders 
+  # extracting, bboxes, scores and labels
+
   img = Image.open(input_image_path)
-  c=0
-  k=0
   instances = outputs["instances"].to("cpu")
   boxes = instances.pred_boxes.tensor.tolist()
   scores = instances.scores.tolist()
   labels = instances.pred_classes.tolist()
-  labels.sort()
   layout_info = {}
-  l_prev = labels[0]
+
+  count = {}
+  for i in range(len(label_list)):
+    count[label_list[i]] = 0
+  print(count)
 
   for score, box, label in zip(scores, boxes, labels):
     x_1, y_1, x_2, y_2 = box
     label_name = label_mapping[label]
-    if k!=0 and label == l_prev:
-      c+=1
-      l_new = label_name+str(c)
-      layout_info[l_new] = box
-    else:
-      c=0 
-      l_new = label_name+str(c)
-      layout_info[l_new] = box
-    k+=1
-    l_prev = label
+    count[label_name] += 1
+    l_new = label_name+str(count[label_name])
+    layout_info[l_new] = box
+    #print(str(l_new) + ":",box)
+
+  # storing the labels and corresponding bbox coordinates in a json
   
   with open("layout_data.json", 'w', encoding='utf-8') as f:
     json.dump(layout_info, f, ensure_ascii=False, indent=4)
